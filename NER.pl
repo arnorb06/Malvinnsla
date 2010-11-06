@@ -1,54 +1,53 @@
 #!usr/bin/perl
 # Named Entity Recognizer
+# Usage: perl NER.pl <inputfile> <outputfile>
+#		 where <inputfile> is a file that has been tagged
+#		 according to the Penn Treebank tagset, one word
+#		 and its tag per line.
 # Authors: Haukur Jónasson & Arnór Barkarson
-use 5.010;
 
+# Global variable declarations
 my $taggedfile = $ARGV[0];
 my $outfile = $ARGV[1];
-my $out = '';
-my @outputlines;
+my @out;
 
+# Reading inputfile
 open(FILE,$taggedfile) or die("Cannot open $taggedfile.\n");
-#flock(FILE, LOCK_EX);
-#seek(FILE, 0, SEEK_SET); 
 my @lines;
-push(@lines,$line);
 
 foreach(<FILE>) {
-	push @lines,$_ unless ($_ =~ /^ \n/); #Getting rid of empty lines.
+	push @lines,$_ unless ($_ =~ /^ \n/); #Getting rid of empty lines while inserting into array.
 }
-say "$#lines";
+print "$#lines\n";
 close($taggedfile);
 
+# Processing input
 for(my $i=0;$i<$#lines+1;++$i) {
 	my @line = split(/ /,$lines[$i]);
 	my $word = $line[0];
 	my $tag = $line[1];
-	$tag =~ s/\n//;			#Remove newlines
+	$tag =~ s/\n//;			#Remove newlines from tags
 	if($tag eq 'NNP') {
-		push(@outputlines, "[ $line[0]\t$line[1]");
-		#say $out;
+		push(@out, "[ $line[0]\t$line[1]");
 		while(1) {
 			my $nextword,$nexttag = split(/ /,$lines[++$i]);
 			if($nexttag eq 'NNP') {
-				push(@outputlines, "$lines[$i]");
+				push(@out, "$lines[$i]");
 			}
 			else {
-				push(@outputlines, " ]\n");
+				push(@out, " ]\n");
 				last;
 			}
 		}
 	}
-	else {
-		#say $tag;
-	}
 }
-#say $out;
+
+# Outputting to file
 open(OFILE,">$outfile") or die("Cannot open $outfile.\n");
 flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
-#say $out; 
-foreach $x (@outputlines) {
+ 
+foreach $x (@out) {
 	print OFILE $x;
 }
 close($outfile);
