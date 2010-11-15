@@ -10,14 +10,14 @@
 my $taggedfile = $ARGV[0];
 my $outfile = $ARGV[1];
 my @out;
-my $re = /^n(.){3,4}\-((.)+)$/;
+#my $re = '/^n(.){3,4}\-((.)+)$/';
 
 # Reading inputfile
 open(FILE,$taggedfile) or die("Cannot open $taggedfile.\n");
 my @lines;
 
 foreach(<FILE>) {
-	push @lines,$_ unless ($_ =~ /^ \n/); #Getting rid of empty lines while inserting into array.
+	push @lines,$_ unless ($_ =~ / \n/); #Getting rid of empty lines while inserting into array.
 }
 print "$#lines\n";
 close($taggedfile);
@@ -27,13 +27,16 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	my @line = split(/ /,$lines[$i]);
 	my $word = $line[0];
 	my $tag = $line[1];
-	$tag =~ s/\n//;			#Remove newlines from tags
-	if($tag =~ $re) {
+	#$tag =~ s/\n//;			#Remove newlines from tags
+	chomp($tag);
+	if($tag =~ /^n(.){3,4}\-((.)+)$/) {
 		#print "$tag\n";
 		push(@out, "[ $line[0]\t$line[1]");
 		while(1) {
 			my $nextword,$nexttag = split(/ /,$lines[++$i]);
-			if($nexttag =~ $re) {
+			chomp($nexttag);
+			print $nexttag;
+			if($nexttag =~ /^n(.){3,4}\-((.)+)$/) {
 				push(@out, "$lines[$i]");
 			}
 			else {
@@ -50,6 +53,7 @@ flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
  
 foreach (@out) {
+	$_ =~ s/\n//;
 	print OFILE $_;
 }
 close($outfile);
