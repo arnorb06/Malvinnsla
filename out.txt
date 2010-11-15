@@ -1,14 +1,30 @@
+[ Íslandi	nheþ-ö
+ ]
+[ Hérað	nheo-ö
+ ]
 [ Síðu-Halls,	nkee-m ]
 [ Þeir,	nken-m ]
 [ Norðmenn	nkfn-s
  ]
 [ Fögrudali.	nken-m ]
 [ Sá,	nkee-m ]
+[ Fagradal	nkeo-ö ]
+[ Indriðahóll	nheo-ö ]
 [ Sigríðartunga	nkfe-s ]
 [ Enginn	nken-m
  ]
+[ Íslandi;	nkeþ-m ]
+[ Indriðahóli	nheþ-ö ]
+[ Sigríðartungu	nveþ-ö ]
+[ Sigríðartunguhrepp	nkeþ-m ]
+[ Indriðahólshrepp,	nkeþ-m ]
+[ Indriðahólssveitar	nkeþ-s ]
+[ Hólshrepp	nkeþ-m ]
 [ Tunguhrepps	nkeo-m ]
+[ Sigríðartungu	nveo-ö ]
 [ Indriðahólshrepp.	nken-m ]
+[ Sigríðartungu.	nkeþ-m ]
+[ Sigríðartungu	nveþ-ö ]
 [ Hólhreppingar	nkfn-s ]
 [ Bjarni	nken-m
  ]

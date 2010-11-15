@@ -27,7 +27,8 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	my $word = $line[0];
 	my $tag = $line[1];
 	$tag =~ s/\n//;			#Remove newlines from tags
-	if($tag =~ /^n....(m|ö|s)$/) {
+	if($tag =~ /^n(.){3,4}\-((.)+)$/) {
+		print "$tag\n";
 		push(@out, "[ $line[0]\t$line[1]");
 		while(1) {
 			my $nextword,$nexttag = split(/ /,$lines[++$i]);
