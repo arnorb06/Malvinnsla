@@ -35,7 +35,7 @@ sub npcheck {
 	if($n =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
 		$result = "TIME";
 	}
-	elsif($n =~ /[A-Z]?[. ]*(ton|ham|shire|City|Town|Village|Hamlet|Farm|Island)$/){
+	elsif($n =~ /[A-Z]?[. ]*(ton|ham|shire|City|Town|Village|Hamlet|Farm|Island|Ocean|Lake|River|[Ww]ood|House)/){
 		$result = "LOCATION";
 	}
 	elsif($n =~ /[A-Z](.)*(Inc(orporated)?|Corp(oration)?|Army|Company|FC|Club|Marines|Navy|Administration|Office)/) {
