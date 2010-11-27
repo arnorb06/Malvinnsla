@@ -30,6 +30,7 @@ close($taggedfile);
 
 sub npcheck {
 	my $n = $_[0];
+	print "FUCK-----> $n\n";
 	my $result = "(unknown)";
 	if($n =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
 		$result = "DAY";
@@ -37,16 +38,7 @@ sub npcheck {
 	elsif($n =~ /[A-Z](.)*(ton|ham|shire| City| Island)$/){
 		$result = "LOCATION";
 	}
-	elsif($n =~ /(^[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|
-				Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|
-				Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|
-				Emeritus|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|
-				Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|
-				Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|
-				Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|
-				Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|
-				Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|
-				Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)$/) {
+	elsif($n =~ /(^[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
 		$result = "PERSON";
 	}
 	return $result;
@@ -68,22 +60,25 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	my $type = "";
 	my $np = $word;
 	if($tag =~ /NP(S)?/) {
-		push(@out, "[ $line[0]\t$line[1]");
+		push(@out, "[ $line[0]");
 		while(1) {
-			my @nextline = split(/ /,$lines[++$i]);
+			my @nextline = split(/\t/,$lines[++$i]);
 			my $nextword = $nextline[0];
 			my $nexttag = $nextline[1];
 			chomp($nextword);
 			chomp($nexttag);
-			#print "$nextword\t$nexttag\n";
+			#print $nexttag;
+			#print "$nextword\n";
 			if($nexttag =~ /NP(S)?/) {
 				$np = $np." $nextword";
+				#print "----> This is np : ".$np;
 				chomp($lines[$i]);
-				push(@out, "$lines[$i]");
+				push(@out, " $nextline[0]");
+				#push(@out, "$lines[$i]");
 			}
 			else {
 				$type = npcheck($np);
-				push(@out, " | $type ]\n");
+				push(@out, " NP | $type ]\n");
 				last;
 			}
 		}
@@ -100,7 +95,7 @@ flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
  
 foreach (@out) {
-	print $_;
+	#print $_;
 	print OFILE $_;
 }
 close($outfile);
