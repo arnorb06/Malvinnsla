@@ -120,7 +120,7 @@ foreach (@out) {
 }
 
 print "NUMBER OF NP's : $numOfNPs\n";
-print "NUMERR OF UNKNOWN : $numOfUnKnown\n";
+print "NUMBER OF UNKNOWN : $numOfUnKnown\n";
 my $hitrate = ($numOfNPs - $numOfUnKnown)/$numOfNPs;
 print "HITRATE = $hitrate\n";
 close($outfile);
