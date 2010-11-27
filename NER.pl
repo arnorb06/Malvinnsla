@@ -34,11 +34,21 @@ sub npcheck {
 	if($n =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
 		$result = "DAY";
 	}
-	elsif($n =~ /[A-Z](.)*(ton|ham|shire| City| Island)/){
+	elsif($n =~ /[A-Z](.)*(ton|ham|shire| City| Island)$/){
 		$result = "LOCATION";
 	}
-	elsif($n =~ /[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*)/) {
-		$result = "PERSON";	}
+	elsif($n =~ /(^[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|
+				Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|
+				Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|
+				Emeritus|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|
+				Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|
+				Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|
+				Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|
+				Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|
+				Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|
+				Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)$/) {
+		$result = "PERSON";
+	}
 	return $result;
 }
 
