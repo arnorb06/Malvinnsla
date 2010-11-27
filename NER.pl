@@ -22,12 +22,27 @@ foreach(<FILE>) {
 chomp(@lines);
 close($taggedfile);
 
+
+sub npcheck $np {
+	my $type = "(unknown)";
+	if($np =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
+		$type = "DAY";
+	}
+	elsif($np =~ /[A-Z](.)*(ton|ham|shire| City)/){
+		$type = "LOCATION";
+	}
+	elsif($np =~ /[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*)/) {
+		$type = "PERSON";
+	}
+	return $type;
+}
+
 # Processing input
 for(my $i=0;$i<$#lines+1;++$i) {
-	chomp(my @line = split(/ /,$lines[$i]));
+	chomp(my @line = split(/\t/,$lines[$i]));
 	my $word = $line[0];
 	my $tag = $line[1];
-	my $type = "(unknown type)";
+	my $type = "";
 	if($tag =~ /NP(S)?/) {
 		print "$word\t$tag\n";
 		push(@out, "[ $line[0]\t$line[1]");
@@ -43,10 +58,8 @@ for(my $i=0;$i<$#lines+1;++$i) {
 				push(@out, "$lines[$i]");
 			}
 			else {
-				if( $word =~/(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/ ) {
-					$type = "DAY";
-				}
-				push(@out, " | $type]\n");
+				
+				push(@out, " | $type ]\n");
 				last;
 			}
 		}
