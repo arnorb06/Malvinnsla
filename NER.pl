@@ -20,7 +20,6 @@ foreach(<FILE>) {
 	push @lines,$_ unless ($_ =~ / \n/); #Getting rid of empty lines while inserting into array.
 }
 chomp(@lines);
-print "$#lines\n";
 close($taggedfile);
 
 # Processing input
@@ -28,10 +27,8 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	chomp(my @line = split(/ /,$lines[$i]));
 	my $word = $line[0];
 	my $tag = $line[1];
-	#$tag =~ s/\n//;			#Remove newlines from tags
-	#chomp($tag);
-	#chomp($word);
-	if($tag eq "NP") {
+	my $type = "(unknown type)";
+	if($tag =~ /NP(S)?/) {
 		print "$word\t$tag\n";
 		push(@out, "[ $line[0]\t$line[1]");
 		while(1) {
@@ -41,12 +38,15 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			chomp($nextword);
 			chomp($nexttag);
 			#print "$nextword\t$nexttag\n";
-			if($nexttag eq "NP") {
+			if($nexttag =~ /NP(S)?/) {
 				chomp($lines[$i]);
 				push(@out, "$lines[$i]");
 			}
 			else {
-				push(@out, " ]\n");
+				if( $word =~/(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/ ) {
+					$type = "DAY";
+				}
+				push(@out, " | $type]\n");
 				last;
 			}
 		}
