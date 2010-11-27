@@ -30,13 +30,15 @@ close($taggedfile);
 
 sub npcheck {
 	my $n = $_[0];
-	print "FUCK-----> $n\n";
 	my $result = "(unknown)";
-	if($n =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
-		$result = "DAY";
+	if($n =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
+		$result = "TIME";
 	}
-	elsif($n =~ /[A-Z](.)*(ton|ham|shire| City| Island)$/){
+	elsif($n =~ /[A-Z]?[. ]*(ton|ham|shire|City|Town|Village|Hamlet|Farm|Island)$/){
 		$result = "LOCATION";
+	}
+	elsif($n =~ /[A-Z](.)*(Inc(orporated)?|Corp(oration)?|Army|Company|FC|Club|Marines|Navy|Administration|Office)/) {
+		$result = "ORGANIZATION"
 	}
 	elsif($n =~ /(^[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
 		$result = "PERSON";
@@ -79,7 +81,6 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			#print "$nextword\n";
 			if($nexttag =~ /NP(S)?/) {
 				$np = $np." $nextword";
-				#print "----> This is np : ".$np;
 				chomp($lines[$i]);
 				push(@out, " $nextline[0]");
 				#push(@out, "$lines[$i]");
@@ -103,7 +104,7 @@ flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
  
 foreach (@out) {
-	#print $_;
+	print $_;
 	print OFILE $_;
 }
 close($outfile);
