@@ -4,7 +4,7 @@
 #		 where <inputfile> is a file that has been tagged
 #		 according to the Penn Treebank tagset, one word
 #		 and its tag per line.
-# Authors: Haukur J�nasson & Arn�r Barkarson
+# Authors: Haukur Jónasson & Arnór Barkarson
 
 # Global variable declarations
 my $taggedfile = $ARGV[0];
@@ -38,17 +38,24 @@ sub npcheck {
 		$result = "LOCATION";
 	}
 	elsif($n =~ /[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*)/) {
-		$result = "PERSON";
-	}
+		$result = "PERSON";	}
 	return $result;
 }
 
 sub cdcheck {
 	my $c = $_[0];
+	my $linesPosCnt = $_[1];
 	my $result = "(unknown)";
-	if($c =~ /^[1-2][0-9][0-9][0-9]/){
+	if($c =~ /^[1-2][0-9]{3}/){
 		$result = "YEAR";
 	}
+	elsif(@lines[$linesPosCnt - 1] =~ /^(\$|£|¥|₤|€)/){
+		$result = "MONEY";
+	}
+	elsif(@lines[$linesPosCnt + 1] =~ /[dollar(s)?][pound(s)?][euro(s)?][yen(s)?]/){
+		$result = "MONEY";	
+	}
+	return $result;
 }
 
 # Processing input
@@ -80,7 +87,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 		}
 	}
 	if($tag =~ /CD/){
-		$type = cdcheck($np);
+		$type = cdcheck($np, $i);
 		push(@out, "[ $line[0]\t$line[1] | $type]\n");
 	}
 }
