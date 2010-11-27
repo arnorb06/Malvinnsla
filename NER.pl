@@ -71,6 +71,9 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			}
 		}
 	}
+	if($tag =~ /CD/){
+		push(@out, "[ $line[0]\t$line[1] | $tag]\n");
+	}
 }
 
 # Outputting to file
