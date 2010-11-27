@@ -31,7 +31,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	#$tag =~ s/\n//;			#Remove newlines from tags
 	#chomp($tag);
 	#chomp($word);
-	if($tag eq "NNP") {
+	if($tag eq "NP") {
 		print "$word\t$tag\n";
 		push(@out, "[ $line[0]\t$line[1]");
 		while(1) {
@@ -41,7 +41,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			chomp($nextword);
 			chomp($nexttag);
 			#print "$nextword\t$nexttag\n";
-			if($nexttag eq "NNP") {
+			if($nexttag eq "NP") {
 				chomp($lines[$i]);
 				push(@out, "$lines[$i]");
 			}
