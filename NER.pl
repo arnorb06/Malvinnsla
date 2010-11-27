@@ -28,7 +28,7 @@ chomp(@lines);
 close($taggedfile);
 
 
-sub npcheck $np {
+sub npcheck($np) {
 	my $type = "(unknown)";
 	if($np =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
 		$type = "DAY";
