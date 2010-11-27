@@ -11,6 +11,11 @@ my $taggedfile = $ARGV[0];
 my $outfile = $ARGV[1];
 my @out;
 
+my $tokenize_command = "perl ../tokeniser.pl ../ex.in ../ex_token.in";
+my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../ex.out";
+
+system($tokenize_command);
+system($tag_command);
 
 # Reading inputfile
 open(FILE,$taggedfile) or die("Cannot open $taggedfile.\n");
@@ -24,12 +29,11 @@ close($taggedfile);
 
 # Processing input
 for(my $i=0;$i<$#lines+1;++$i) {
-	chomp(my @line = split(/ /,$lines[$i]));
+	chomp(my @line = split(/\t/,$lines[$i]));
 	my $word = $line[0];
 	my $tag = $line[1];
 	my $type = "(unknown type)";
 	if($tag =~ /NP(S)?/) {
-		print "$word\t$tag\n";
 		push(@out, "[ $line[0]\t$line[1]");
 		while(1) {
 			my @nextline = split(/ /,$lines[++$i]);
