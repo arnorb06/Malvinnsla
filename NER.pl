@@ -28,18 +28,19 @@ chomp(@lines);
 close($taggedfile);
 
 
-sub npcheck($np) {
-	my $type = "(unknown)";
-	if($np =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
-		$type = "DAY";
+sub npcheck {
+	my $n = $_[0];
+	my $result = "(unknown)";
+	if($n =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
+		$result = "DAY";
 	}
-	elsif($np =~ /[A-Z](.)*(ton|ham|shire| City)/){
-		$type = "LOCATION";
+	elsif($n =~ /[A-Z](.)*(ton|ham|shire| City| Island)/){
+		$result = "LOCATION";
 	}
-	elsif($np =~ /[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*)/) {
-		$type = "PERSON";
+	elsif($n =~ /[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*)/) {
+		$result = "PERSON";
 	}
-	return $type;
+	return $result;
 }
 
 # Processing input
@@ -48,6 +49,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	my $word = $line[0];
 	my $tag = $line[1];
 	my $type = "";
+	my $np = $word;
 	if($tag =~ /NP(S)?/) {
 		push(@out, "[ $line[0]\t$line[1]");
 		while(1) {
@@ -58,11 +60,12 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			chomp($nexttag);
 			#print "$nextword\t$nexttag\n";
 			if($nexttag =~ /NP(S)?/) {
+				$np = $np." $nextword";
 				chomp($lines[$i]);
 				push(@out, "$lines[$i]");
 			}
 			else {
-				
+				$type = npcheck($np);
 				push(@out, " | $type ]\n");
 				last;
 			}
