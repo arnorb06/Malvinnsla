@@ -32,14 +32,12 @@ close($taggedfile);
 sub npcheck {
 	my $n = $_[0];
 	my $result = "(unknown)";
-	if($n =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
-		$result = "TIME";
+	if($n =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
+		$result = "DAY";
 	}
 	elsif($n =~ /[A-Z]?[. ]*(ton|ham|shire|City|Town|Village|Hamlet|Farm|Island|Ocean|Lake|River|[Ww]ood|House)/){
+
 		$result = "LOCATION";
-	}
-	elsif($n =~ /[A-Z](.)*(Inc(orporated)?|Corp(oration)?|Army|Company|FC|Club|Marines|Navy|Administration|Office)/) {
-		$result = "ORGANIZATION"
 	}
 	elsif($n =~ /(^[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
 		$result = "PERSON";
@@ -54,13 +52,16 @@ sub cdcheck {
 	my $c = $_[0];
 	my $linesPosCnt = $_[1];
 	my $result = "(unknown)";
+	my @l;
+	chomp(@l = split(/\t/,$lines[$linesPosCnt - 1]));
 	if($c =~ /^[1-2][0-9]{3}/){
 		$result = "YEAR";
-	}
-	elsif(@lines[$linesPosCnt - 1] =~ /^(\$|£|¥|₤|€)/){
+	}#$lines[$linesPosCnt - 1]
+	elsif( $l[0] =~ /^(\$|£|¥|₤|€)/){
 		$result = "MONEY";
 	}
-	elsif(@lines[$linesPosCnt + 1] =~ /[dollar(s)?][pound(s)?][euro(s)?][yen(s)?]/){
+	chomp(@l = split(/\t/,$lines[$linesPosCnt + 1]));
+	if($l[0] =~ /^(dollar(s)?)|(pound(s)?)|(euro(s)?)|(yen)|(.*ion)/){
 		$result = "MONEY";	
 	}
 	if($result eq "(unknown)"){
@@ -90,6 +91,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			if($nexttag =~ /NP(S)?/) {
 				$numOfNPs++;
 				$np = $np." $nextword";
+				#print "----> This is np : ".$np;
 				chomp($lines[$i]);
 				push(@out, " $nextline[0]");
 				#push(@out, "$lines[$i]");
