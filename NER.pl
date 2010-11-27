@@ -43,6 +43,14 @@ sub npcheck {
 	return $result;
 }
 
+sub cdcheck {
+	my $c = $_[0];
+	my $result = "(unknown)";
+	if($c =~ /^[1-2][0-9][0-9][0-9]/){
+		$result = "YEAR";
+	}
+}
+
 # Processing input
 for(my $i=0;$i<$#lines+1;++$i) {
 	chomp(my @line = split(/\t/,$lines[$i]));
@@ -72,7 +80,8 @@ for(my $i=0;$i<$#lines+1;++$i) {
 		}
 	}
 	if($tag =~ /CD/){
-		push(@out, "[ $line[0]\t$line[1] | $tag]\n");
+		$type = cdcheck($np);
+		push(@out, "[ $line[0]\t$line[1] | $type]\n");
 	}
 }
 
