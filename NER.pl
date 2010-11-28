@@ -71,7 +71,7 @@ sub npcontext {
 sub cdcheck {
 	my $c = $_[0];
 	my $linesPosCnt = $_[1];
-	my $result = "(unknown)";
+	my $result = "NUMBER (unknown??)";
 	my @l;
 	chomp(@l = split(/\t/,$lines[$linesPosCnt - 1]));
 	#print "----------------------------> FUCK $l[1]\n";
@@ -95,7 +95,7 @@ sub cdcheck {
 		$result = "MONEY";	
 	}
 	if($result eq "(unknown)"){
-		$numOfUnKnown++;
+		#$numOfUnKnown++;
 	}
 	return $result;
 }
