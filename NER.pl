@@ -25,9 +25,6 @@ if($flags =~ /\-[ol]+/) {
 		$f_log = 1;
 	}
 }
-
-
-
 my @out;
 my $numOfUnknown = 0;
 my $numOfTags = 0;
