@@ -32,8 +32,9 @@ close($taggedfile);
 sub npcheck {
 	my $pnoun = $_[0];
 	my $result = "(unknown)";
-	if($pnoun =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
-		$result = "DAY";
+
+	if($n =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
+		$result = "TIME";
 	}
 	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|Town|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Sea(s)?|Mountain(s)?)/){
 
@@ -73,14 +74,20 @@ sub cdcheck {
 	my $result = "(unknown)";
 	my @l;
 	chomp(@l = split(/\t/,$lines[$linesPosCnt - 1]));
-	if($c =~ /^[1-2][0-9]{3}/){
-		$result = "YEAR";
+	if($c =~ /(.*ion)/){
+		$result = "MONEY";
+	}
+	elsif($c =~ /^[1-2][0-9]{3}/){
+		$result = "TIME";
 	}
 	elsif( $l[0] =~ /^(\$|£|¥|₤|€)/){
 		$result = "MONEY";
 	}
 	chomp(@l = split(/\t/,$lines[$linesPosCnt + 1]));
-	if($l[0] =~ /^(dollar(s)?)|(pound(s)?)|(euro(s)?)|(yen)|(.*ion)/){
+	if($c =~ /^([0-9]|[0-1][0-9]|2[0-3])[:][0-5][0-9]$/){
+		$result = "TIME";	
+	}
+	elsif($l[0] =~ /^(dollar(s)?)|(pound(s)?)|(euro(s)?)|(yen)|(.*ion)|[A-Z]{3}/){
 		$result = "MONEY";	
 	}
 	if($result eq "(unknown)"){
