@@ -13,8 +13,8 @@ my $logfile = 'log.txt';
 my @out;
 my $numOfUnKnown = 0;
 my $numOfNPs = 0;
-my $tokenize_command = "perl ../tokeniser.pl ../ex.in ../ex_token.in";
-my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../ex.out";
+my $tokenize_command = "perl ../tokeniser.pl ../corpus.in ../ex_token.in";
+my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../corpus.out";
 
 system($tokenize_command);
 system($tag_command);
@@ -38,10 +38,10 @@ sub npcheck {
 	my $pnoun = $_[0];
 	my $result = "(unknown)";
 
-	if($n =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
+	if($pnoun =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
 		$result = "TIME";
 	}
-	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|Town|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Sea(s)?|Mountain(s)?)/){
+	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|[Tt]own|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Sea(s)?|Mountain(s)?)/){
 
 		$result = "LOCATION";
 	}
@@ -59,25 +59,25 @@ sub npcontext {
 	my $pnoun = $_[0];
 	my $index = $_[1];
 	my $result = "(unknown)";
-	print "*** Trying to identify < $pnoun > ***\n";
+	#print "*** Trying to identify < $pnoun > ***\n";
 	print LOGFILE "*** Trying to identify < $pnoun > ***\n";
 	while($index<$#lines+1) {		
 		chomp(my @line = split(/\s+/,$lines[$index]));
 		if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
 			$result = "PERSON";
 			$numOfUnKnown--;
-			print "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n";
+			#print "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n";
 			print LOGFILE "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
 			last;
 		}
 		
 		elsif($line[1] =~ /NP(S)?/) {
-			print "********** New proper noun < $line[0] > found, aborting < $pnoun >\n";
+			#print "********** New proper noun < $line[0] > found, aborting < $pnoun >\n";
 			print LOGFILE "********** New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
 			last;
 		}
 		else {
-			print "****** < $line[0] > does not refer to < $pnoun > \n";
+			#print "****** < $line[0] > does not refer to < $pnoun > \n";
 			print LOGFILE "****** < $line[0] > does not refer to < $pnoun > \n";
 		}
 		$index+=1;
