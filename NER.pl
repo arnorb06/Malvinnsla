@@ -189,7 +189,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 				print OFILE " NP | $type ] ";
 				print OFILE " $nextword $nexttag";
 				if($nexttag eq 'SENT'){
-					print OFILE '\n';
+					print OFILE "\n";
 				}
 				#push(@out, " NP | $type ]\n");
 				last;
