@@ -41,13 +41,13 @@ sub npcheck {
 	if($pnoun =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
 		$result = "TIME";
 	}
-	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|[Tt]own|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Sea(s)?|Mountain(s)?|[Rr]idge(s)?|County)/){
+	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|[Tt]own|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Hotel|Sea(s)?|Mountain(s)?|[Rr]idge(s)?|County)/){
 		$result = "LOCATION";
 	}
-	elsif($pnoun =~ /[A-Z]?(.)*(Inc(orporated)?|Corp(oration)?|Army|Company|FC|Club|Marines|Navy|Administration|Office|Centre|Center|Society|Department)/) {
+	elsif($pnoun =~ /[A-Z]?(.)*(Inc(orporated)?|Corp(oration)?|Army|Company|Party|FC|Club|Marines|Navy|Administration|Office|Centre|Center|Society|Department|School|University|Academy|College)/) {
 		$result = "ORGANIZATION"
 	}
-	elsif($pnoun =~ /(^([A-Z](.)* )?([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
+	elsif($pnoun =~ /(^([A-Z](.)* )?([A-Z](.)*son|O'[A-Z](.)+|Mc[A-Z](.)+)( |$))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
 		$result = "PERSON";
 	}
 	if($result eq "(unknown)"){
@@ -67,31 +67,41 @@ sub npcontext {
 	my $prevword = $prevline[0];
 	my $nextword = $nextline[0];
 	if(( $prevword =~ /^[Ss](aid|ays)$/ ) or ($nextword =~ /^[Ss](aid|ays)$/)) {
-		$result = "PERSON";
-		print "-----------------------------------> FUCK";
+		$numOfUnKnown--;
+		$result = "PERSON";	
 	}
-	while($index<$#lines+1) {		
-		chomp(my @line = split(/\s+/,$lines[$index]));
-		if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
-			$result = "PERSON";
-			$numOfUnKnown--;
-			print LOGFILE "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
-			last;
+	elsif($prevword =~ /^[Ii]n$/) {
+		$numOfUnKnown--;
+		$result = "LOCATION";
+	}
+	elsif($prevword =~ /^[Tt]he$/) {
+		$numOfUnKnown--;
+		$result = "THING";
+	}
+	if( $result eq "(unknown)") {
+		while($index<$#lines+1) {		
+			chomp(my @line = split(/\s+/,$lines[$index]));
+			if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
+				$result = "PERSON";
+				$numOfUnKnown--;
+				print LOGFILE "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
+				last;
+			}
+			elsif($line[0] =~ /^([Ii]t(s)?|)$/) {
+				$result = "THING";
+				print LOGFILE "********** < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
+				$numOfUnKnown--;
+				last;
+			}
+			elsif($line[1] =~ /NP(S)?/) {
+				print LOGFILE "********** New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
+				last;
+			}
+			else {
+				print LOGFILE "****** < $line[0] > does not refer to < $pnoun > \n";
+			}
+			$index+=1;
 		}
-		elsif($line[0] =~ /^([Ii]t(s)?|)$/) {
-			$result = "THING";
-			print LOGFILE "********** < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
-			$numOfUnKnown--;
-			last;
-		}
-		elsif($line[1] =~ /NP(S)?/) {
-			print LOGFILE "********** New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
-			last;
-		}
-		else {
-			print LOGFILE "****** < $line[0] > does not refer to < $pnoun > \n";
-		}
-		$index+=1;
 	}
 	return $result;
 }
@@ -176,7 +186,7 @@ foreach (@out) {
 	print OFILE $_;
 }
 
-print "NUMBER OF TAGS's : $numOfNPs\n";
+print "NUMBER OF TAGS : $numOfNPs\n";
 print "NUMBER OF UNKNOWN : $numOfUnKnown\n";
 my $hitrate = ($numOfNPs - $numOfUnKnown)/$numOfNPs;
 print "HITRATE = $hitrate\n";
