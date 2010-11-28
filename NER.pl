@@ -33,7 +33,7 @@ foreach(<FILE>) {
 chomp(@lines);
 close($taggedfile);
 
-# This subroutine uses regular expressions to try to find things about a proper noun, without looking at the context.
+# This subroutine uses regular expressions to try to guess what $pnoun is, without looking at the context.
 sub npcheck {
 	my $pnoun = $_[0];
 	my $result = "(unknown)";
@@ -41,11 +41,13 @@ sub npcheck {
 	if($pnoun =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
 		$result = "TIME";
 	}
-	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|[Tt]own|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Sea(s)?|Mountain(s)?)/){
-
+	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|[Tt]own|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Sea(s)?|Mountain(s)?|[Rr]idge(s)?|County)/){
 		$result = "LOCATION";
 	}
-	elsif($pnoun =~ /(^[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
+	elsif($pnoun =~ /[A-Z]?(.)*(Inc(orporated)?|Corp(oration)?|Army|Company|FC|Club|Marines|Navy|Administration|Office|Centre|Center|Society|Department)/) {
+		$result = "ORGANIZATION"
+	}
+	elsif($pnoun =~ /(^([A-Z](.)* )?([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
 		$result = "PERSON";
 	}
 	if($result eq "(unknown)"){
@@ -54,30 +56,31 @@ sub npcheck {
 	return $result;
 }
 
-# 
+# Using the context, this subroutine tries to guess what $pnoun is
 sub npcontext {
 	my $pnoun = $_[0];
 	my $index = $_[1];
 	my $result = "(unknown)";
-	#print "*** Trying to identify < $pnoun > ***\n";
 	print LOGFILE "*** Trying to identify < $pnoun > ***\n";
 	while($index<$#lines+1) {		
 		chomp(my @line = split(/\s+/,$lines[$index]));
 		if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
 			$result = "PERSON";
 			$numOfUnKnown--;
-			#print "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n";
 			print LOGFILE "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
 			last;
 		}
-		
+		elsif($line[0] =~ /^([Ii]t(s)?|)$/) {
+			$result = "THING";
+			print LOGFILE "********** < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
+			$numOfUnKnown--;
+			last;
+		}
 		elsif($line[1] =~ /NP(S)?/) {
-			#print "********** New proper noun < $line[0] > found, aborting < $pnoun >\n";
 			print LOGFILE "********** New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
 			last;
 		}
 		else {
-			#print "****** < $line[0] > does not refer to < $pnoun > \n";
 			print LOGFILE "****** < $line[0] > does not refer to < $pnoun > \n";
 		}
 		$index+=1;
@@ -88,10 +91,9 @@ sub npcontext {
 sub cdcheck {
 	my $c = $_[0];
 	my $linesPosCnt = $_[1];
-	my $result = "NUMBER (unknown??)";
+	my $result = "NUMBER";
 	my @l;
 	chomp(@l = split(/\t/,$lines[$linesPosCnt - 1]));
-	#print "----------------------------> FUCK $l[1]\n";
 	if($l[1] eq 'CD' and $c =~ /(.*ion)/){
 		$result = "MONEY";
 	}
@@ -110,9 +112,6 @@ sub cdcheck {
 	}
 	elsif($l[0] =~ /^(dollar(s)?)|(pound(s)?)|(euro(s)?)|(yen)|(.*ion)|[A-Z]{3}/){
 		$result = "MONEY";	
-	}
-	if($result eq "(unknown)"){
-		#$numOfUnKnown++;
 	}
 	return $result;
 }
@@ -133,8 +132,6 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			my $nexttag = $nextline[1];
 			chomp($nextword);
 			chomp($nexttag);
-			#print $nexttag;
-			#print "$nextword\n";
 			if($nexttag =~ /NP(S)?/) {
 				$numOfNPs++;
 				$np = $np." $nextword";
@@ -143,9 +140,9 @@ for(my $i=0;$i<$#lines+1;++$i) {
 				push(@out, " $nextline[0]");
 			}
 			else {
-				$type = npcheck($np);
-				if($type eq "(unknown)") {
-					$type = npcontext($np, $i);
+				$type = npcheck($np); 			# Simple regex check...
+				if($type eq "(unknown)") { 		# Returned nothing?
+					$type = npcontext($np, $i);	# More complex contextual check
 				}
 				push(@out, " NP | $type ]\n");
 				last;
@@ -165,7 +162,9 @@ flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
  
 foreach (@out) {
-	print $_;
+	#if($_ =~ /\(unknown\)/ ) {
+		print $_;
+	#}
 	print OFILE $_;
 }
 
