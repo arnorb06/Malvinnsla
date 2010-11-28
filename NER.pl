@@ -13,6 +13,8 @@ my $taggedfile = '../tagged.txt';
 my $outfile = $ARGV[1];
 my $logfile = 'log.txt';
 my $locfile = 'loc.txt';
+my $flags = $ARGV[2];
+
 my @out;
 my $numOfUnknown = 0;
 my $numOfTags = 0;
@@ -26,6 +28,10 @@ system($tag_command);
 open(LOGFILE,">$logfile") or die("Cannot open $logfile\n");
 flock(LOGFILE, LOCK_EX);
 seek(LOGFILE, 0, SEEK_SET);
+# Outputting to file
+open(OFILE,">$outfile") or die("Cannot open $outfile\n");
+flock(OFILE, LOCK_EX);
+seek(OFILE, 0, SEEK_SET);
 
 # Reading locfile
 open(LOCFILE,$locfile) or die("Cannot open $locfile\n");
@@ -163,7 +169,8 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	my $np = $word;
 	if($tag =~ /NP(S)?/) {
 		$numOfTags++;
-		push(@out, "[ $line[0]");
+		print OFILE "[ $line[0]";
+		#push(@out, "[ $line[0]");
 		while(1) {
 			my @nextline = split(/\t/,$lines[++$i]);
 			my $nextword = $nextline[0];
@@ -175,34 +182,44 @@ for(my $i=0;$i<$#lines+1;++$i) {
 				$np = $np." $nextword";
 				#print "----> This is np : ".$np;
 				chomp($lines[$i]);
-				push(@out, " $nextline[0]");
+				print OFILE " $nextline[0] ";
+				#push(@out, " $nextline[0]");
 			}
 			else {
 				$type = npcheck($np); 			# Simple regex check...
 				if($type eq "(unknown)") { 		# Returned nothing?
 					$type = npcontext($np, $i);	# More complex contextual check
 				}
-				push(@out, " NP | $type ]\n");
+				print OFILE " NP | $type ] ";
+				print OFILE " $nextword $nexttag";
+				if($nexttag eq 'SENT'){
+					print OFILE '\n';
+				}
+				#push(@out, " NP | $type ]\n");
 				last;
 			}
 		}
 	}
-	if($tag =~ /CD/){
+	elsif($tag =~ /CD/){
 		$numOfTags++;
 		$type = cdcheck($np, $i);
-		push(@out, "[ $line[0]\t$line[1] | $type]\n");
+		print OFILE "[ $line[0]\t$line[1] | $type] ";
+		#push(@out, "[ $line[0]\t$line[1] | $type]\n");
+	}
+	elsif($tag eq 'SENT'){
+		print OFILE "$word $tag\n";	
+	}
+	else{
+		print OFILE " $word $tag ";
 	}
 }
 
-# Outputting to file
-open(OFILE,">$outfile") or die("Cannot open $outfile\n");
-flock(OFILE, LOCK_EX);
-seek(OFILE, 0, SEEK_SET);
+
  
-foreach (@out) {
-	print $_;
-	print OFILE $_;
-}
+#foreach (@out) {
+	#print $_;
+	#print OFILE $_;
+#}
 
 print "NUMBER OF TAGS : $numOfTags\n";
 print "NUMBER OF UNKNOWN : $numOfUnknown\n";
