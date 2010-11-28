@@ -14,6 +14,17 @@ my $outfile = $ARGV[1];
 my $logfile = 'log.txt';
 my $locfile = 'loc.txt';
 my $flags = $ARGV[2];
+my $f_output = 0;
+my $f_log = 0;
+
+if($flags =~ /\-[ol]+/) {
+	if($flags =~ /o/) {
+		$f_output = 1;
+	}
+	if($flags =~ /l/) {
+		$f_log = 1;
+	}
+}
 
 my @out;
 my $numOfUnknown = 0;
@@ -24,11 +35,13 @@ my $tag_command = "../bin/tree-tagger -token ../english.par $tokfile $taggedfile
 system($tokenise_command);
 system($tag_command);
 
-# Preparing logfile for output
-open(LOGFILE,">$logfile") or die("Cannot open $logfile\n");
-flock(LOGFILE, LOCK_EX);
-seek(LOGFILE, 0, SEEK_SET);
-# Outputting to file
+if($f_log) {
+	# Preparing logfile for output
+	open(LOGFILE,">$logfile") or die("Cannot open $logfile\n");
+	flock(LOGFILE, LOCK_EX);
+	seek(LOGFILE, 0, SEEK_SET);
+}
+# Preparing outputfile
 open(OFILE,">$outfile") or die("Cannot open $outfile\n");
 flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
@@ -87,7 +100,9 @@ sub npcontext {
 	my $pnoun = $_[0];
 	my $index = $_[1];
 	my $result = "(unknown)";
-	print LOGFILE "*** Trying to identify < $pnoun > ***\n";
+	if($f_log) {
+		print LOGFILE "  * Trying to identify < $pnoun >\n";
+	}
 	chomp(my @prevline = split(/\s+/,$lines[$index-2]));
 	chomp(my @nextline = split(/\s+/,$lines[$index]));
 	my $prevword = $prevline[0];
@@ -110,21 +125,29 @@ sub npcontext {
 			if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
 				$result = "PERSON";
 				$numOfUnknown--;
-				print LOGFILE "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
+				if($f_log) {
+					print LOGFILE "         * < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
+				}
 				last;
 			}
 			elsif($line[0] =~ /^([Ii]t(s)?|)$/) {
 				$result = "THING";
-				print LOGFILE "********** < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
+				if($f_log) {
+					print LOGFILE "         * < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
+				}
 				$numOfUnknown--;
 				last;
 			}
 			elsif($line[1] =~ /NP(S)?/) {
-				print LOGFILE "********** New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
+				if($f_log) {
+					print LOGFILE "         * New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
+				}
 				last;
 			}
 			else {
-				print LOGFILE "****** < $line[0] > does not refer to < $pnoun > \n";
+				if($f_log) {
+					print LOGFILE "     * < $line[0] > does not refer to < $pnoun > \n";
+				}
 			}
 			$index+=1;
 		}
@@ -170,7 +193,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	if($tag =~ /NP(S)?/) {
 		$numOfTags++;
 		print OFILE "[ $line[0]";
-		#push(@out, "[ $line[0]");
+		push(@out, "[ $line[0]");
 		while(1) {
 			my @nextline = split(/\t/,$lines[++$i]);
 			my $nextword = $nextline[0];
@@ -183,7 +206,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 				#print "----> This is np : ".$np;
 				chomp($lines[$i]);
 				print OFILE " $nextline[0] ";
-				#push(@out, " $nextline[0]");
+				push(@out, " $nextline[0]");
 			}
 			else {
 				$type = npcheck($np); 			# Simple regex check...
@@ -195,7 +218,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 				if($nexttag eq 'SENT'){
 					print OFILE '\n';
 				}
-				#push(@out, " NP | $type ]\n");
+				push(@out, " NP | $type ]\n");
 				last;
 			}
 		}
@@ -204,7 +227,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 		$numOfTags++;
 		$type = cdcheck($np, $i);
 		print OFILE "[ $line[0]\t$line[1] | $type] ";
-		#push(@out, "[ $line[0]\t$line[1] | $type]\n");
+		push(@out, "[ $line[0]\t$line[1] | $type]\n");
 	}
 	elsif($tag eq 'SENT'){
 		print OFILE "$word $tag\n";	
@@ -216,10 +239,12 @@ for(my $i=0;$i<$#lines+1;++$i) {
 
 
  
-#foreach (@out) {
-	#print $_;
-	#print OFILE $_;
-#}
+
+if($f_output) {
+	foreach (@out) {
+		print $_;
+	}
+}
 
 print "NUMBER OF TAGS : $numOfTags\n";
 print "NUMBER OF UNKNOWN : $numOfUnknown\n";
