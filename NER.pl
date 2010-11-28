@@ -94,8 +94,8 @@ sub cdcheck {
 	my $result = "NUMBER";
 	my @l;
 	chomp(@l = split(/\t/,$lines[$linesPosCnt - 1]));
-	if($l[1] eq 'CD' and $c =~ /(.*ion)/){
-		$result = "MONEY";
+	if($c =~ /(.*ion)/){
+		$result = "NUMBER";
 	}
 	elsif($c =~ /^[1-2][0-9]{3}/){
 		$result = "TIME";
