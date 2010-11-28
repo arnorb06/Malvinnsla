@@ -28,22 +28,41 @@ foreach(<FILE>) {
 chomp(@lines);
 close($taggedfile);
 
-
+# This subroutine uses regular expressions to try to find things about a proper noun, without looking at the context.
 sub npcheck {
-	my $n = $_[0];
+	my $pnoun = $_[0];
 	my $result = "(unknown)";
-	if($n =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
+	if($pnoun =~ /(Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day/) {
 		$result = "DAY";
 	}
-	elsif($n =~ /[A-Z]?[. ]*(ton|ham|shire|City|Town|Village|Hamlet|Farm|Island|Ocean|Lake|River|[Ww]ood|House)/){
+	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|Town|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Sea(s)?|Mountain(s)?)/){
 
 		$result = "LOCATION";
 	}
-	elsif($n =~ /(^[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
+	elsif($pnoun =~ /(^[A-Z](.)* ([A-Z](.)*son|O'[A-Z](.)*))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
 		$result = "PERSON";
 	}
 	if($result eq "(unknown)"){
 		$numOfUnKnown++;
+	}
+	return $result;
+}
+
+# 
+sub npcontext {
+	my $pnoun = $_[0];
+	my $index = $_[1];
+	my $result = "(unknown)";
+	chomp(my @line = split(/\t/,$lines[$index-1]));
+	while($index<$#lines+1) {
+		if($lines[$index] =~ /^([Hh]e|[Ss]he])$/){
+			$result = "PERSON";
+			last;
+		}
+		elsif($lines[$index +1] =~ /NP(S)?/) {
+			last;
+		}
+		$index+=2;
 	}
 	return $result;
 }
@@ -56,7 +75,7 @@ sub cdcheck {
 	chomp(@l = split(/\t/,$lines[$linesPosCnt - 1]));
 	if($c =~ /^[1-2][0-9]{3}/){
 		$result = "YEAR";
-	}#$lines[$linesPosCnt - 1]
+	}
 	elsif( $l[0] =~ /^(\$|£|¥|₤|€)/){
 		$result = "MONEY";
 	}
@@ -94,10 +113,12 @@ for(my $i=0;$i<$#lines+1;++$i) {
 				#print "----> This is np : ".$np;
 				chomp($lines[$i]);
 				push(@out, " $nextline[0]");
-				#push(@out, "$lines[$i]");
 			}
 			else {
 				$type = npcheck($np);
+				if($type eq "(unknown)") {
+					$type = npcontext($np, $i);
+				}
 				push(@out, " NP | $type ]\n");
 				last;
 			}
@@ -115,7 +136,7 @@ flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
  
 foreach (@out) {
-	print $_;
+	#print $_;
 	print OFILE $_;
 }
 
