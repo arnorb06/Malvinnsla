@@ -10,6 +10,7 @@
 my $taggedfile = $ARGV[0];
 my $outfile = $ARGV[1];
 my $logfile = 'log.txt';
+my $locfile = 'loc.txt';
 my @out;
 my $numOfUnKnown = 0;
 my $numOfNPs = 0;
@@ -19,14 +20,22 @@ my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../ex
 system($tokenize_command);
 system($tag_command);
 
-# Reading inputfile
-open(FILE,$taggedfile) or die("Cannot open $taggedfile\n");
-my @lines;
-
+# Preparing logfile for output
 open(LOGFILE,">$logfile") or die("Cannot open $logfile\n");
 flock(LOGFILE, LOCK_EX);
 seek(LOGFILE, 0, SEEK_SET);
 
+# Reading locfile
+open(LOCFILE,$locfile) or die("Cannor open $locfile\n");
+my @locations;
+foreach(<LOCFILE>) {
+	push @locations,$_;
+}
+close($locfile);
+
+# Reading inputfile
+open(FILE,$taggedfile) or die("Cannot open $taggedfile\n");
+my @lines;
 foreach(<FILE>) {
 	push @lines,$_ unless ($_ =~ / \n/); #Getting rid of empty lines while inserting into array.
 }
@@ -37,18 +46,26 @@ close($taggedfile);
 sub npcheck {
 	my $pnoun = $_[0];
 	my $result = "(unknown)";
-
-	if($pnoun =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
-		$result = "TIME";
+	foreach(@locations) {
+		if($pnoun eq $_) {
+			print "=========================================> FUCK\n";
+			$result = "LOCATION";
+			last;
+		}
 	}
-	elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|[Tt]own|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Hotel|Sea(s)?|Mountain(s)?|[Rr]idge(s)?|County)/){
-		$result = "LOCATION";
-	}
-	elsif($pnoun =~ /[A-Z]?(.)*(Inc(orporated)?|Corp(oration)?|Army|Company|Party|FC|Club|Marines|Navy|Administration|Office|Centre|Center|Society|Department|School|University|Academy|College)/) {
-		$result = "ORGANIZATION"
-	}
-	elsif($pnoun =~ /(^([A-Z](.)* )?([A-Z](.)*son|O'[A-Z](.)+|Mc[A-Z](.)+)( |$))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
-		$result = "PERSON";
+	if($pnoun eq "(unknown)") {
+		if($pnoun =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
+			$result = "TIME";
+		}
+		elsif($pnoun =~ /[A-Z]?[. ]*(ton|ham|shire|[Ww]ood|City|[Tt]own|Village|Hamlet|Farm|Island|Ocean|Lake|River|House|Hotel|Sea(s)?|Mountain(s)?|[Rr]idge(s)?|County)/){
+			$result = "LOCATION";
+		}
+		elsif($pnoun =~ /[A-Z]?(.)*(Inc(orporated)?|Corp(oration)?|Army|Company|Party|FC|Club|Marines|Navy|Administration|Office|Centre|Center|Society|Department|School|University|Academy|College)/) {
+			$result = "ORGANIZATION"
+		}
+		elsif($pnoun =~ /(^([A-Z](.)* )?([A-Z](.)*son|O'[A-Z](.)+|Mc[A-Z](.)+)( |$))|((Sir|Lord|Lady|Miss|Mister|Mr|Ms|Mrs|Reverend|Count|Duke|Baron|Earl|Bishop|Emperor|Empress|King|Queen|President|Prime Minister|Dame|Viscount|Marquis|Professor|Dean|Master|Judge|Cardinal|Deacon|Archduke|Abbot|Father|Friar|Sister|Vicar|Chief|Chieftain|Honourable|Right Honourable|Viceroy|CEO|Pontiff|Sheriff|Magistrate|Minister|Barrister|Judicary|Lord Protector|Regent|Private|Constable|Corporal|Sergeant|Lieutinant|Captain|Major|Colonel|Brigadier|General|Marshall|Admiral|Consul|Senator|Chancellor|Ambassador|Doctor|Governor|Governator|Steward|Seneschal|Principal|Officer|Mistress|Madam|Prince|Princess)( [A-Z][. ]*)?)/) {
+			$result = "PERSON";
+		}
 	}
 	if($result eq "(unknown)"){
 		$numOfUnKnown++;
@@ -67,13 +84,16 @@ sub npcontext {
 	my $prevword = $prevline[0];
 	my $nextword = $nextline[0];
 	if(( $prevword =~ /^[Ss](aid|ays)$/ ) or ($nextword =~ /^[Ss](aid|ays)$/)) {
+		$numOfUnKnown--;
 		$result = "PERSON";
 		print "------------------------------------------------------------FUCK\n";
 	}
 	elsif($prevword =~ /^[Ii]n$/) {
+		$numOfUnKnown--;
 		$result = "LOCATION";
 	}
 	elsif($prevword =~ /^[Tt]he$/) {
+		$numOfUnKnown--;
 		$result = "THING";
 	}
 	if( $result eq "(unknown)") {
@@ -178,9 +198,7 @@ flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
  
 foreach (@out) {
-	#if($_ =~ /\(unknown\)/ ) {
-		print $_;
-	#}
+	print $_;
 	print OFILE $_;
 }
 
