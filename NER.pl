@@ -15,7 +15,7 @@ my @out;
 my $numOfUnKnown = 0;
 my $numOfNPs = 0;
 my $tokenize_command = "perl ../tokeniser.pl corpus.in ../ex_token.in";
-my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../code/corpus.out";
+my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../corpus.out";
 
 system($tokenize_command);
 system($tag_command);
@@ -47,8 +47,9 @@ sub npcheck {
 	my $pnoun = $_[0];
 	my $result = "(unknown)";
 	foreach(@locations) {
-		if($pnoun eq $_) {
-			print "=========================================> FUCK\n";
+		chomp($_);
+		chomp($pnoun);
+		if($_ eq $pnoun) {
 			$result = "LOCATION";
 			last;
 		}
