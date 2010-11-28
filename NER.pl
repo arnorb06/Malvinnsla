@@ -210,11 +210,10 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	}
 }
 
-
- 
-foreach (@out) {
-	#print $_;
-	#print OFILE $_;
+if($f_output) {
+	foreach (@out) {
+		print $_;
+	}
 }
 
 print "NUMBER OF TAGS : $numOfNPs\n";
