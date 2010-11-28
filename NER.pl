@@ -237,9 +237,6 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	}
 }
 
-
- 
-
 if($f_output) {
 	foreach (@out) {
 		print $_;
