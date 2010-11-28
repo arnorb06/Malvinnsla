@@ -14,8 +14,8 @@ my $locfile = 'loc.txt';
 my @out;
 my $numOfUnKnown = 0;
 my $numOfNPs = 0;
-my $tokenize_command = "perl ../tokeniser.pl ../ex.in ../ex_token.in";
-my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../ex.out";
+my $tokenize_command = "perl ../tokeniser.pl ../corpus.in ../ex_token.in";
+my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../corpus.out";
 
 system($tokenize_command);
 system($tag_command);
@@ -85,8 +85,7 @@ sub npcontext {
 	my $nextword = $nextline[0];
 	if(( $prevword =~ /^[Ss](aid|ays)$/ ) or ($nextword =~ /^[Ss](aid|ays)$/)) {
 		$numOfUnKnown--;
-		$result = "PERSON";
-		print "------------------------------------------------------------FUCK\n";
+		$result = "PERSON";	
 	}
 	elsif($prevword =~ /^[Ii]n$/) {
 		$numOfUnKnown--;
