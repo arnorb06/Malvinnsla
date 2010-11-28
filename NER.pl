@@ -7,17 +7,19 @@
 # Authors: Haukur Jónasson & Arnór Barkarson
 
 # Global variable declarations
-my $taggedfile = $ARGV[0];
+my $infile = $ARGV[0];
+my $tokfile = '../tokenised.txt';
+my $taggedfile = '../tagged.txt';
 my $outfile = $ARGV[1];
 my $logfile = 'log.txt';
 my $locfile = 'loc.txt';
 my @out;
-my $numOfUnKnown = 0;
-my $numOfNPs = 0;
-my $tokenize_command = "perl ../tokeniser.pl corpus.in ../ex_token.in";
-my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../corpus.out";
+my $numOfUnknown = 0;
+my $numOfTags = 0;
+my $tokenise_command = "perl ../tokeniser.pl $infile $tokfile";
+my $tag_command = "../bin/tree-tagger -token ../english.par $tokfile $taggedfile";
 
-system($tokenize_command);
+system($tokenise_command);
 system($tag_command);
 
 # Preparing logfile for output
@@ -26,7 +28,7 @@ flock(LOGFILE, LOCK_EX);
 seek(LOGFILE, 0, SEEK_SET);
 
 # Reading locfile
-open(LOCFILE,$locfile) or die("Cannor open $locfile\n");
+open(LOCFILE,$locfile) or die("Cannot open $locfile\n");
 my @locations;
 foreach(<LOCFILE>) {
 	push @locations,$_;
@@ -54,7 +56,7 @@ sub npcheck {
 			last;
 		}
 	}
-	if($pnoun eq "(unknown)") {
+	if($result eq "(unknown)") {
 		if($pnoun =~ /((Sun|Mon|Tues|Wednes|Thurs|Fri|Satur)day)|(January|February|March|April|May|June|July|August|September|October|November|December)/) {
 			$result = "TIME";
 		}
@@ -69,7 +71,7 @@ sub npcheck {
 		}
 	}
 	if($result eq "(unknown)"){
-		$numOfUnKnown++;
+		$numOfUnknown++;
 	}
 	return $result;
 }
@@ -85,15 +87,15 @@ sub npcontext {
 	my $prevword = $prevline[0];
 	my $nextword = $nextline[0];
 	if(( $prevword =~ /^[Ss](aid|ays)$/ ) or ($nextword =~ /^[Ss](aid|ays)$/)) {
-		$numOfUnKnown--;
+		$numOfUnknown--;
 		$result = "PERSON";	
 	}
 	elsif($prevword =~ /^[Ii]n$/) {
-		$numOfUnKnown--;
+		$numOfUnknown--;
 		$result = "LOCATION";
 	}
 	elsif($prevword =~ /^[Tt]he$/) {
-		$numOfUnKnown--;
+		$numOfUnknown--;
 		$result = "THING";
 	}
 	if( $result eq "(unknown)") {
@@ -101,14 +103,14 @@ sub npcontext {
 			chomp(my @line = split(/\s+/,$lines[$index]));
 			if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
 				$result = "PERSON";
-				$numOfUnKnown--;
+				$numOfUnknown--;
 				print LOGFILE "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
 				last;
 			}
 			elsif($line[0] =~ /^([Ii]t(s)?|)$/) {
 				$result = "THING";
 				print LOGFILE "********** < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
-				$numOfUnKnown--;
+				$numOfUnknown--;
 				last;
 			}
 			elsif($line[1] =~ /NP(S)?/) {
@@ -160,7 +162,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	my $type = "";
 	my $np = $word;
 	if($tag =~ /NP(S)?/) {
-		$numOfNPs++;
+		$numOfTags++;
 		push(@out, "[ $line[0]");
 		while(1) {
 			my @nextline = split(/\t/,$lines[++$i]);
@@ -169,7 +171,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			chomp($nextword);
 			chomp($nexttag);
 			if($nexttag =~ /NP(S)?/) {
-				$numOfNPs++;
+				$numOfTags++;
 				$np = $np." $nextword";
 				#print "----> This is np : ".$np;
 				chomp($lines[$i]);
@@ -186,7 +188,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 		}
 	}
 	if($tag =~ /CD/){
-		$numOfNPs++;
+		$numOfTags++;
 		$type = cdcheck($np, $i);
 		push(@out, "[ $line[0]\t$line[1] | $type]\n");
 	}
@@ -202,9 +204,9 @@ foreach (@out) {
 	print OFILE $_;
 }
 
-print "NUMBER OF TAGS : $numOfNPs\n";
-print "NUMBER OF UNKNOWN : $numOfUnKnown\n";
-my $hitrate = ($numOfNPs - $numOfUnKnown)/$numOfNPs;
+print "NUMBER OF TAGS : $numOfTags\n";
+print "NUMBER OF UNKNOWN : $numOfUnknown\n";
+my $hitrate = ($numOfTags - $numOfUnknown)/$numOfTags;
 print "HITRATE = $hitrate\n";
 close($outfile);
 close($logfile);
