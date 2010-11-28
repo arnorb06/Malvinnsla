@@ -7,30 +7,47 @@
 # Authors: Haukur Jónasson & Arnór Barkarson
 
 # Global variable declarations
-my $taggedfile = $ARGV[0];
+my $infile = $ARGV[0];
+my $tokfile = '../tokenised.txt';
+my $taggedfile = '../tagged.txt';
 my $outfile = $ARGV[1];
 my $logfile = 'log.txt';
 my $locfile = 'loc.txt';
-my @out;
-my $numOfUnKnown = 0;
-my $numOfNPs = 0;
-my $tokenize_command = "perl ../tokeniser.pl corpus.in ../ex_token.in";
-my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../corpus.out";
+my $flags = $ARGV[2];
+my $f_output = 0;
+my $f_log = 0;
 
-system($tokenize_command);
+if($flags =~ /\-[ol]+/) {
+	if($flags =~ /o/) {
+		$f_output = 1;
+	}
+	if($flags =~ /l/) {
+		$f_log = 1;
+	}
+}
+
+my @out;
+my $numOfUnknown = 0;
+my $numOfTags = 0;
+my $tokenise_command = "perl ../tokeniser.pl $infile $tokfile";
+my $tag_command = "../bin/tree-tagger -token ../english.par $tokfile $taggedfile";
+
+system($tokenise_command);
 system($tag_command);
 
-# Preparing logfile for output
-open(LOGFILE,">$logfile") or die("Cannot open $logfile\n");
-flock(LOGFILE, LOCK_EX);
-seek(LOGFILE, 0, SEEK_SET);
-# Outputting to file
+if($f_log) {
+	# Preparing logfile for output
+	open(LOGFILE,">$logfile") or die("Cannot open $logfile\n");
+	flock(LOGFILE, LOCK_EX);
+	seek(LOGFILE, 0, SEEK_SET);
+}
+# Preparing outputfile
 open(OFILE,">$outfile") or die("Cannot open $outfile\n");
 flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
 
 # Reading locfile
-open(LOCFILE,$locfile) or die("Cannor open $locfile\n");
+open(LOCFILE,$locfile) or die("Cannot open $locfile\n");
 my @locations;
 foreach(<LOCFILE>) {
 	push @locations,$_;
@@ -73,7 +90,7 @@ sub npcheck {
 		}
 	}
 	if($result eq "(unknown)"){
-		$numOfUnKnown++;
+		$numOfUnknown++;
 	}
 	return $result;
 }
@@ -83,21 +100,23 @@ sub npcontext {
 	my $pnoun = $_[0];
 	my $index = $_[1];
 	my $result = "(unknown)";
-	print LOGFILE "*** Trying to identify < $pnoun > ***\n";
+	if($f_log) {
+		print LOGFILE "  * Trying to identify < $pnoun >\n";
+	}
 	chomp(my @prevline = split(/\s+/,$lines[$index-2]));
 	chomp(my @nextline = split(/\s+/,$lines[$index]));
 	my $prevword = $prevline[0];
 	my $nextword = $nextline[0];
 	if(( $prevword =~ /^[Ss](aid|ays)$/ ) or ($nextword =~ /^[Ss](aid|ays)$/)) {
-		$numOfUnKnown--;
+		$numOfUnknown--;
 		$result = "PERSON";	
 	}
 	elsif($prevword =~ /^[Ii]n$/) {
-		$numOfUnKnown--;
+		$numOfUnknown--;
 		$result = "LOCATION";
 	}
 	elsif($prevword =~ /^[Tt]he$/) {
-		$numOfUnKnown--;
+		$numOfUnknown--;
 		$result = "THING";
 	}
 	if( $result eq "(unknown)") {
@@ -105,22 +124,30 @@ sub npcontext {
 			chomp(my @line = split(/\s+/,$lines[$index]));
 			if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
 				$result = "PERSON";
-				$numOfUnKnown--;
-				print LOGFILE "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
+				$numOfUnknown--;
+				if($f_log) {
+					print LOGFILE "         * < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
+				}
 				last;
 			}
 			elsif($line[0] =~ /^([Ii]t(s)?|)$/) {
 				$result = "THING";
-				print LOGFILE "********** < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
-				$numOfUnKnown--;
+				if($f_log) {
+					print LOGFILE "         * < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
+				}
+				$numOfUnknown--;
 				last;
 			}
 			elsif($line[1] =~ /NP(S)?/) {
-				print LOGFILE "********** New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
+				if($f_log) {
+					print LOGFILE "         * New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
+				}
 				last;
 			}
 			else {
-				print LOGFILE "****** < $line[0] > does not refer to < $pnoun > \n";
+				if($f_log) {
+					print LOGFILE "     * < $line[0] > does not refer to < $pnoun > \n";
+				}
 			}
 			$index+=1;
 		}
@@ -164,9 +191,9 @@ for(my $i=0;$i<$#lines+1;++$i) {
 	my $type = "";
 	my $np = $word;
 	if($tag =~ /NP(S)?/) {
-		$numOfNPs++;
+		$numOfTags++;
 		print OFILE "[ $line[0]";
-		#push(@out, "[ $line[0]");
+		push(@out, "[ $line[0]");
 		while(1) {
 			my @nextline = split(/\t/,$lines[++$i]);
 			my $nextword = $nextline[0];
@@ -174,12 +201,12 @@ for(my $i=0;$i<$#lines+1;++$i) {
 			chomp($nextword);
 			chomp($nexttag);
 			if($nexttag =~ /NP(S)?/) {
-				$numOfNPs++;
+				$numOfTags++;
 				$np = $np." $nextword";
 				#print "----> This is np : ".$np;
 				chomp($lines[$i]);
 				print OFILE " $nextline[0] ";
-				#push(@out, " $nextline[0]");
+				push(@out, " $nextline[0]");
 			}
 			else {
 				$type = npcheck($np); 			# Simple regex check...
@@ -191,16 +218,16 @@ for(my $i=0;$i<$#lines+1;++$i) {
 				if($nexttag eq 'SENT'){
 					print OFILE "\n";
 				}
-				#push(@out, " NP | $type ]\n");
+				push(@out, " NP | $type ]\n");
 				last;
 			}
 		}
 	}
 	elsif($tag =~ /CD/){
-		$numOfNPs++;
+		$numOfTags++;
 		$type = cdcheck($np, $i);
 		print OFILE "[ $line[0]\t$line[1] | $type] ";
-		#push(@out, "[ $line[0]\t$line[1] | $type]\n");
+		push(@out, "[ $line[0]\t$line[1] | $type]\n");
 	}
 	elsif($tag eq 'SENT'){
 		print OFILE "$word $tag\n";	
@@ -212,14 +239,16 @@ for(my $i=0;$i<$#lines+1;++$i) {
 
 
  
-foreach (@out) {
-	#print $_;
-	#print OFILE $_;
+
+if($f_output) {
+	foreach (@out) {
+		print $_;
+	}
 }
 
-print "NUMBER OF TAGS : $numOfNPs\n";
-print "NUMBER OF UNKNOWN : $numOfUnKnown\n";
-my $hitrate = ($numOfNPs - $numOfUnKnown)/$numOfNPs;
+print "NUMBER OF TAGS : $numOfTags\n";
+print "NUMBER OF UNKNOWN : $numOfUnknown\n";
+my $hitrate = ($numOfTags - $numOfUnknown)/$numOfTags;
 print "HITRATE = $hitrate\n";
 close($outfile);
 close($logfile);
