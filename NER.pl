@@ -74,7 +74,8 @@ sub cdcheck {
 	my $result = "(unknown)";
 	my @l;
 	chomp(@l = split(/\t/,$lines[$linesPosCnt - 1]));
-	if($c =~ /(.*ion)/){
+	#print "----------------------------> FUCK $l[1]\n";
+	if($l[1] eq 'CD' and $c =~ /(.*ion)/){
 		$result = "MONEY";
 	}
 	elsif($c =~ /^[1-2][0-9]{3}/){
@@ -84,7 +85,10 @@ sub cdcheck {
 		$result = "MONEY";
 	}
 	chomp(@l = split(/\t/,$lines[$linesPosCnt + 1]));
-	if($c =~ /^([0-9]|[0-1][0-9]|2[0-3])[:][0-5][0-9]$/){
+	if($c =~ /%$/ or $l[0] eq '%' or $l[0] =~ /[Pp]ercent/){
+		$result = "PERCENTAGE";	
+	}
+	elsif($c =~ /^([0-9]|[0-1][0-9]|2[0-3])[:][0-5][0-9]$/){
 		$result = "TIME";	
 	}
 	elsif($l[0] =~ /^(dollar(s)?)|(pound(s)?)|(euro(s)?)|(yen)|(.*ion)|[A-Z]{3}/){
@@ -132,6 +136,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 		}
 	}
 	if($tag =~ /CD/){
+		$numOfNPs++;
 		$type = cdcheck($np, $i);
 		push(@out, "[ $line[0]\t$line[1] | $type]\n");
 	}
@@ -143,11 +148,11 @@ flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
  
 foreach (@out) {
-	#print $_;
+	print $_;
 	print OFILE $_;
 }
 
-print "NUMBER OF NP's : $numOfNPs\n";
+print "NUMBER OF TAGS's : $numOfNPs\n";
 print "NUMBER OF UNKNOWN : $numOfUnKnown\n";
 my $hitrate = ($numOfNPs - $numOfUnKnown)/$numOfNPs;
 print "HITRATE = $hitrate\n";
