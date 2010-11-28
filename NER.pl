@@ -13,8 +13,8 @@ my $logfile = 'log.txt';
 my @out;
 my $numOfUnKnown = 0;
 my $numOfNPs = 0;
-my $tokenize_command = "perl ../tokeniser.pl ../corpus.in ../ex_token.in";
-my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../corpus.out";
+my $tokenize_command = "perl ../tokeniser.pl ../ex.in ../ex_token.in";
+my $tag_command = "../bin/tree-tagger -token ../english.par ../ex_token.in ../ex.out";
 
 system($tokenize_command);
 system($tag_command);
@@ -62,6 +62,13 @@ sub npcontext {
 	my $index = $_[1];
 	my $result = "(unknown)";
 	print LOGFILE "*** Trying to identify < $pnoun > ***\n";
+	chomp(my @prevline = split(/\s+/,$lines[$index-2]));
+	chomp(my @nextline = split(/\s+/,$lines[$index]));
+	my $prevword = $prevline[0];
+	my $nextword = $nextline[0];
+	if(( $prevword =~ /^[Ss](aid|ays)$/ ) or ($nextword =~ /^[Ss](aid|ays)$/)) {
+		$result = "PERSON";
+	}
 	while($index<$#lines+1) {		
 		chomp(my @line = split(/\s+/,$lines[$index]));
 		if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
