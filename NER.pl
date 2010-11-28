@@ -9,6 +9,7 @@
 # Global variable declarations
 my $taggedfile = $ARGV[0];
 my $outfile = $ARGV[1];
+my $logfile = 'log.txt';
 my @out;
 my $numOfUnKnown = 0;
 my $numOfNPs = 0;
@@ -19,8 +20,12 @@ system($tokenize_command);
 system($tag_command);
 
 # Reading inputfile
-open(FILE,$taggedfile) or die("Cannot open $taggedfile.\n");
+open(FILE,$taggedfile) or die("Cannot open $taggedfile\n");
 my @lines;
+
+open(LOGFILE,">$logfile") or die("Cannot open $logfile\n");
+flock(LOGFILE, LOCK_EX);
+seek(LOGFILE, 0, SEEK_SET);
 
 foreach(<FILE>) {
 	push @lines,$_ unless ($_ =~ / \n/); #Getting rid of empty lines while inserting into array.
@@ -54,16 +59,28 @@ sub npcontext {
 	my $pnoun = $_[0];
 	my $index = $_[1];
 	my $result = "(unknown)";
-	chomp(my @line = split(/\t/,$lines[$index-1]));
-	while($index<$#lines+1) {
-		if($lines[$index] =~ /^([Hh]e|[Ss]he])$/){
+	print "*** Trying to identify < $pnoun > ***\n";
+	print LOGFILE "*** Trying to identify < $pnoun > ***\n";
+	while($index<$#lines+1) {		
+		chomp(my @line = split(/\s+/,$lines[$index]));
+		if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
 			$result = "PERSON";
+			$numOfUnKnown--;
+			print "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n";
+			print LOGFILE "********** < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
 			last;
 		}
-		elsif($lines[$index +1] =~ /NP(S)?/) {
+		
+		elsif($line[1] =~ /NP(S)?/) {
+			print "********** New proper noun < $line[0] > found, aborting < $pnoun >\n";
+			print LOGFILE "********** New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
 			last;
 		}
-		$index+=2;
+		else {
+			print "****** < $line[0] > does not refer to < $pnoun > \n";
+			print LOGFILE "****** < $line[0] > does not refer to < $pnoun > \n";
+		}
+		$index+=1;
 	}
 	return $result;
 }
@@ -138,7 +155,7 @@ for(my $i=0;$i<$#lines+1;++$i) {
 }
 
 # Outputting to file
-open(OFILE,">$outfile") or die("Cannot open $outfile.\n");
+open(OFILE,">$outfile") or die("Cannot open $outfile\n");
 flock(OFILE, LOCK_EX);
 seek(OFILE, 0, SEEK_SET);
  
@@ -152,3 +169,4 @@ print "NUMBER OF UNKNOWN : $numOfUnKnown\n";
 my $hitrate = ($numOfNPs - $numOfUnKnown)/$numOfNPs;
 print "HITRATE = $hitrate\n";
 close($outfile);
+close($logfile);
