@@ -1,68 +1,74 @@
 #!usr/bin/perl
 # Named Entity Recognizer
-# Usage: perl NER.pl <inputfile> <outputfile>
-#		 where <inputfile> is a file that has been tagged
-#		 according to the Penn Treebank tagset, one word
-#		 and its tag per line.
-# Authors: Haukur Jónasson & Arnór Barkarson
+# Authors: Arnór Barkarson & Haukur Jónasson
 
 # Global variable declarations
-my $infile = $ARGV[0];
-my $tokfile = '../tokenised.txt';
-my $taggedfile = '../tagged.txt';
-my $outfile = $ARGV[1];
-my $logfile = 'log.txt';
-my $locfile = 'loc.txt';
-my $flags = $ARGV[2];
-my $f_output = 0;
-my $f_log = 0;
+my $infile = $ARGV[0];				# Plaintext input file
+my $tokfile = '../tokenised.txt';	# Intermediate output: Tokenised text file
+my $taggedfile = '../tagged.txt';	# Intermediate output: Tagged text file
+my @lines;							# Array for reading input
+my $outfile = $ARGV[1];				# Final output file
+my @out;							# Array containing terminal output
+my $locfile = 'loc.txt';			# Textfile containing list of locations
+my @locations;						# Array for location list
+my $flags = $ARGV[2];				# Optional flag string
+my $f_output = 0;					# If 1: Output to terminal
+my $f_help = 0;						# If 1: Don't scan, instead print help
+my $f_num_only = 0;					# If 1: Only scan cardinal numbers
+my $f_pnoun_only = 0;				# If 1: Only scan proper nouns
+my $numOfUnknown = 0;				# Number of unidentified words/numbers
+my $numOfTags = 0;					# Total number of words/numbers
 
-if($flags =~ /\-[ol]+/) {
-	if($flags =~ /o/) {
-		$f_output = 1;
+# Process input, set flags
+sub input {
+	if($flags =~ /\-[onph]+/) {
+		if($flags =~ /o/) {
+			$f_output = 1;
+		}
+		if($flags =~ /h/) {
+			$f_help = 1;
+		}
+		if($flags =~ /n/) {
+			$f_num_only = 1;
+		}
+		if($flags =~ /p/) {
+			$f_pnoun_only = 1;
+		}
 	}
-	if($flags =~ /l/) {
-		$f_log = 1;
+}
+
+# Process files necessary for execution, run tokeniser and tagger
+sub preprocess {	
+	my $tokenise_command = "perl ../tokeniser.pl $infile $tokfile";
+	my $tag_command = "../bin/tree-tagger -token ../english.par $tokfile $taggedfile";
+
+	system($tokenise_command);	# Run tokeniser
+	system($tag_command);		# Run PoS tagger
+	
+	# Reading inputfile
+	open(FILE,$taggedfile) or die("Cannot open $taggedfile\n");
+
+	foreach(<FILE>) {
+		push @lines,$_ unless ($_ =~ / \n/);		#Getting rid of empty lines while inserting into array.
 	}
+	chomp(@lines);
+	close($taggedfile);
+
+	# Reading locfile
+	open(LOCFILE,$locfile) or die("Cannot open $locfile\n");
+	foreach(<LOCFILE>) {
+		push @locations,$_;
+	}
+	close($locfile);
+
+	# Preparing outputfile
+	open(OFILE,">$outfile") or die("Cannot open $outfile\n");
+	flock(OFILE, LOCK_EX);
+	seek(OFILE, 0, SEEK_SET);
 }
-my @out;
-my $numOfUnknown = 0;
-my $numOfTags = 0;
-my $tokenise_command = "perl ../tokeniser.pl $infile $tokfile";
-my $tag_command = "../bin/tree-tagger -token ../english.par $tokfile $taggedfile";
 
-system($tokenise_command);
-system($tag_command);
-
-if($f_log) {
-	# Preparing logfile for output
-	open(LOGFILE,">$logfile") or die("Cannot open $logfile\n");
-	flock(LOGFILE, LOCK_EX);
-	seek(LOGFILE, 0, SEEK_SET);
-}
-# Preparing outputfile
-open(OFILE,">$outfile") or die("Cannot open $outfile\n");
-flock(OFILE, LOCK_EX);
-seek(OFILE, 0, SEEK_SET);
-
-# Reading locfile
-open(LOCFILE,$locfile) or die("Cannot open $locfile\n");
-my @locations;
-foreach(<LOCFILE>) {
-	push @locations,$_;
-}
-close($locfile);
-
-# Reading inputfile
-open(FILE,$taggedfile) or die("Cannot open $taggedfile\n");
-my @lines;
-foreach(<FILE>) {
-	push @lines,$_ unless ($_ =~ / \n/); #Getting rid of empty lines while inserting into array.
-}
-chomp(@lines);
-close($taggedfile);
-
-# This subroutine uses regular expressions to try to guess what $pnoun is, without looking at the context.
+# This subroutine uses regular expressions to try to guess what $pnoun is,
+# without looking at the context, only the word itself.
 sub npcheck {
 	my $pnoun = $_[0];
 	my $result = "(unknown)";
@@ -96,57 +102,41 @@ sub npcheck {
 
 # Using the context, this subroutine tries to guess what $pnoun is
 sub npcontext {
-	my $pnoun = $_[0];
-	my $index = $_[1];
+	my $pnoun = $_[0];		# The word being identified
+	my $index = $_[1];		# Array location
 	my $result = "(unknown)";
-	if($f_log) {
-		print LOGFILE "  * Trying to identify < $pnoun >\n";
-	}
+	
 	chomp(my @prevline = split(/\s+/,$lines[$index-2]));
 	chomp(my @nextline = split(/\s+/,$lines[$index]));
-	my $prevword = $prevline[0];
-	my $nextword = $nextline[0];
-	if(( $prevword =~ /^[Ss](aid|ays)$/ ) or ($nextword =~ /^[Ss](aid|ays)$/)) {
+	my $prevword = $prevline[0]; 		# The previous word
+	my $nextword = $nextline[0];		# The next word
+	if(( $prevword =~ /^[Ss](aid|ays)$/ ) or ($nextword =~ /^[Ss](aid|ays)$/)) {		# Checking for preceding or trailing said/says
+		$result = "PERSON";								# Identified as person	
 		$numOfUnknown--;
-		$result = "PERSON";	
 	}
-	elsif($prevword =~ /^[Ii]n$/) {
+	elsif($prevword =~ /^[Ii]n$/) {														# Checking for preceding location-adverb
+		$result = "LOCATION";							# Identified as location
 		$numOfUnknown--;
-		$result = "LOCATION";
 	}
-	elsif($prevword =~ /^[Tt]he$/) {
+	elsif($prevword =~ /^(([Tt]he)|a(n)?)$/) {											# Checking for preceding determinant
+		$result = "THING";								# Identified as non-person
 		$numOfUnknown--;
-		$result = "THING";
 	}
 	if( $result eq "(unknown)") {
 		while($index<$#lines+1) {		
 			chomp(my @line = split(/\s+/,$lines[$index]));
-			if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){
-				$result = "PERSON";
-				$numOfUnknown--;
-				if($f_log) {
-					print LOGFILE "         * < $pnoun > is a PERSON because < $line[0] > refers to it. *****\n\n";
-				}
-				last;
-			}
-			elsif($line[0] =~ /^([Ii]t(s)?|)$/) {
-				$result = "THING";
-				if($f_log) {
-					print LOGFILE "         * < $pnoun > is a THING because < $line[0] > refers to it.\n\n";
-				}
+			if($line[0] =~ /^([Hh]e|[Ss]he|[Hh](is|er))$/){								# Looking for nearby he/she/his/her
+				$result = "PERSON";						# Identified as person
 				$numOfUnknown--;
 				last;
 			}
-			elsif($line[1] =~ /NP(S)?/) {
-				if($f_log) {
-					print LOGFILE "         * New proper noun < $line[0] > found, aborting < $pnoun >\n\n";
-				}
+			elsif($line[0] =~ /^([Ii]t(s)?|)$/) {										# Looking for nearby it/its
+				$result = "THING";						# Identified as non-person
+				$numOfUnknown--;
 				last;
 			}
-			else {
-				if($f_log) {
-					print LOGFILE "     * < $line[0] > does not refer to < $pnoun > \n";
-				}
+			elsif($line[1] =~ /NP(S)?/) {												# Looking for next NP/NPS
+				last;									# Aborting
 			}
 			$index+=1;
 		}
@@ -154,14 +144,15 @@ sub npcontext {
 	return $result;
 }
 
+# Using regular expressions, identify which type $c is
 sub cdcheck {
 	my $c = $_[0];
 	my $linesPosCnt = $_[1];
-	my $result = "NUMBER";
+	my $result = "QUANTITY";
 	my @l;
 	chomp(@l = split(/\t/,$lines[$linesPosCnt - 1]));
 	if($c =~ /(.*ion)/){
-		$result = "NUMBER";
+		$result = "QUANTITY";
 	}
 	elsif($c =~ /^[1-2][0-9]{3}/){
 		$result = "TIME";
@@ -182,69 +173,130 @@ sub cdcheck {
 	return $result;
 }
 
-# Processing input
-for(my $i=0;$i<$#lines+1;++$i) {
-	chomp(my @line = split(/\t/,$lines[$i]));
-	my $word = $line[0];
-	my $tag = $line[1];
-	my $type = "";
-	my $np = $word;
-	if($tag =~ /NP(S)?/) {
-		$numOfTags++;
-		print OFILE "[ $line[0]";
-		push(@out, "[ $line[0]");
-		while(1) {
-			my @nextline = split(/\t/,$lines[++$i]);
-			my $nextword = $nextline[0];
-			my $nexttag = $nextline[1];
-			chomp($nextword);
-			chomp($nexttag);
-			if($nexttag =~ /NP(S)?/) {
-				$numOfTags++;
-				$np = $np." $nextword";
-				#print "----> This is np : ".$np;
-				chomp($lines[$i]);
-				print OFILE " $nextline[0] ";
-				push(@out, " $nextline[0]");
-			}
-			else {
-				$type = npcheck($np); 			# Simple regex check...
-				if($type eq "(unknown)") { 		# Returned nothing?
-					$type = npcontext($np, $i);	# More complex contextual check
-				}
-				print OFILE " NP | $type ] ";
-				print OFILE " $nextword $nexttag";
-				if($nexttag eq 'SENT'){
-					print OFILE "\n";
-				}
-				push(@out, " NP | $type ]\n");
-				last;
+# Print help to terminal
+sub help {
+	print "	* ABOUT :\n";
+	print "	This program will scan through an English plaintext document and\n";
+	print "	tag each word by part-of-speach. This is done with TreeTagger by\n";
+	print "	Helmut Schmid of the University of Stuttgart. The main function \n";
+	print "	is to mark all cardinal numbers (CD) and proper nouns (NP/NPS)  \n";
+	print "	specifically with brackets and try to identify their type. The  \n";
+	print "	types this program identifies are:\n\n";
+	print "    		 Cardinal numbers:\n";
+	print "        		TIME\n";
+	print "				MONEY\n";
+	print "        		PERCENTAGE\n";
+	print "        		QUANTITY\n";
+	print "    		Proper nouns:\n";
+	print "        		PERSON\n";
+	print "        		LOCATION\n";
+	print "        		TIME (name of a month or day of week)\n";
+	print "        		THING (non-person)\n\n";
+	print "	* USAGE :\n";
+	print "	To use this program, run the following command on your terminal:\n";
+	print "			perl NER.pl <inputfile> <outputfile> [-flags]\n";
+	print "	where the optional 'flags' is replaced by any of the following flags:\n\n";
+	print "				o : Print output to terminal\n";
+	print "				h : Print this help\n";
+	print "\n";
+	print "	* CREDITS :\n";
+	print "	Perl script written by:\n";
+	print "				Arnor Barkarson\n";
+	print "				Haukur Jonasson\n";
+	print "	for the BSc course Natural Language Processing (Malvinnsla) at the \n";
+	print "	Department of Computer Science at the University of Reykjavik,\n";
+	print "	November 2010.\n\n";
+}
+
+# Print output and results to terminal
+sub output {
+	if($f_output) {
+			foreach (@out) {
+				print $_;
 			}
 		}
+
+		print "NUMBER OF TAGS : $numOfTags\n";
+		print "NUMBER OF UNKNOWN : $numOfUnknown\n";
+		my $hitrate = ($numOfTags - $numOfUnknown)/$numOfTags;
+		my $hitperc = $hitrate * 100;
+		printf("TAGGED : %.2f \%\n",$hitperc);
+}
+
+sub main {
+	input();
+	
+	if( $f_help ) {
+		help();
 	}
-	elsif($tag =~ /CD/){
-		$numOfTags++;
-		$type = cdcheck($np, $i);
-		print OFILE "[ $line[0]\t$line[1] | $type] ";
-		push(@out, "[ $line[0]\t$line[1] | $type]\n");
-	}
-	elsif($tag eq 'SENT'){
-		print OFILE "$word $tag\n";	
-	}
-	else{
-		print OFILE " $word $tag ";
+	else {
+		preprocess();
+		for(my $i=0;$i<$#lines+1;++$i) {			# For each line in the tagged file
+			chomp(my @line = split(/\t/,$lines[$i]));		# Seperate the tag from the word
+			my $word = $line[0];
+			my $tag = $line[1];
+			my $type = "";
+			my $np = $word;									# Concatenation of marked words 
+			if( not $f_num_only) {
+				if($tag =~ /NP(S)?/) {							# Word is tagged as NP/NPS
+					$numOfTags++;
+					print OFILE "[ $line[0]";
+					push(@out, "[ $line[0]");
+					while(1) {
+						my @nextline = split(/\t/,$lines[++$i]);
+						my $nextword = $nextline[0];
+						my $nexttag = $nextline[1];
+						chomp($nextword);
+						chomp($nexttag);
+						if($nexttag =~ /NP(S)?/) {				# The next word is an NP/NPS too..
+							$numOfTags++;
+							$np = $np." $nextword";				# Concatenate!
+							chomp($lines[$i]);
+							print OFILE " $nextline[0] ";
+							push(@out, " $nextline[0]");
+						}
+						else {
+							$type = npcheck($np);					# Simple regex check...
+							if($type eq "(unknown)") {				# Returned nothing?
+								$type = npcontext($np, $i);			# More complex contextual check
+							}
+							print OFILE " NP | $type ] ";
+							push(@out, " NP | $type ]\n");
+							if($nexttag eq 'CD' and not $f_pnoun_only){		# Next word is a number
+								$numOfTags++;
+								$type = cdcheck($nextword, $i);
+								print OFILE "[ $nextword\t$nexttag | $type ] ";
+								push(@out, "[ $nextword\t$nexttag | $type ]\n");
+							}
+							else{
+								print OFILE " $nextword $nexttag";
+							}
+							if($nexttag eq 'SENT'){					# End of sentence found
+								print OFILE "\n";
+							}
+							last;
+						}
+					}
+				}
+			}
+			if( not $f_pnoun_only) {
+				if($tag =~ /CD/){		# Word is tagged as CD (number)
+					$numOfTags++;
+					$type = cdcheck($np, $i);
+					print OFILE "[ $line[0]\t$line[1] | $type ] ";
+					push(@out, "[ $line[0]\t$line[1] | $type ]\n");
+				}
+			}
+			elsif($tag eq 'SENT'){		# End of sentence found
+				print OFILE "$word $tag\n";	
+			}
+			else{
+				print OFILE " $word $tag ";
+			}
+		}
+		output();
+		close($outfile);
 	}
 }
 
-if($f_output) {
-	foreach (@out) {
-		print $_;
-	}
-}
-
-print "NUMBER OF TAGS : $numOfTags\n";
-print "NUMBER OF UNKNOWN : $numOfUnknown\n";
-my $hitrate = ($numOfTags - $numOfUnknown)/$numOfTags;
-print "HITRATE = $hitrate\n";
-close($outfile);
-close($logfile);
+main();
